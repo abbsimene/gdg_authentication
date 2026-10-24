@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GDG authentication</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 420px; margin: 40px auto; padding: 0 16px; }
+    fieldset { margin-bottom: 20px; border-radius: 8px; }
+    input { display: block; width: 100%; margin: 8px 0; padding: 8px; box-sizing: border-box; }
+    button { padding: 8px 14px; margin: 4px 6px 4px 0; cursor: pointer; }
+    #message { min-height: 1.5em; padding: 10px 12px; border-radius: 6px; }
+    #message:empty { display: none; }
+    #message.success { background: #e6f6ec; color: #17653a; }
+    #message.error { background: #fdecec; color: #9b1c1c; }
+    #message.info { background: #eef3fb; color: #1e40af; }
+  </style>
+</head>
+<body>
+  <h2>Sign up</h2>
+
+  <fieldset>
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password > 8 characters">
+    <button id="signupBtn">Sign up</button>
+    <button id="loginBtn">Log in</button>
+  </fieldset>
+
+  <div id="message"></div>
+
+  <script>
+    const $ = id => document.getElementById(id);
+
+    function showMessage(text, type = "info") {
+      const box = $("message");
+      box.textContent = text;
+      box.className = type;
+    }
+
+    async function request(path, options = {}) {
+      const res = await fetch(path, {
+        ...options,
+        headers: { "Content-Type": "application/json", ...(options.headers || {}) },
+      });
+      const data = await res.json().catch(() => ({}));
+      return { ok: res.ok, status: res.status, data };
+    }
+
+    const credentials = () => JSON.stringify({
+      email: $("email").value,
+      password: $("password").value,
+    });
+
+    $("signupBtn").onclick = async () => {
+      try {
+        const r = await request("/signup", { method: "POST", body: credentials() });
+        if (r.ok) {
+          showMessage("Account created. You can log in now.", "success");
+        } else {
+          showMessage(r.data.error || "Sign up failed.", "error");
+        }
+      } catch {
+        showMessage("Could not reach the server.", "error");
+      }
+    };
+
+    $("loginBtn").onclick = async () => {
+      try {
+        const r = await request("/login", { method: "POST", body: credentials() });
+        if (r.ok) {
+          localStorage.setItem("token", r.data.access_token);
+          $("password").value = "";
+          showMessage("Logged in as " + $("email").value + ".", "success");
+        } else {
+          showMessage(r.data.error || "Log in failed.", "error");
+        }
+      } catch {
+        showMessage("Could not reach the server.", "error");
+      }
+    };
+  </script>
+</body>
+</html>
